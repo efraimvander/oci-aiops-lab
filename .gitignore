@@ -1,0 +1,27 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Credenciais OCI
+*.pem
+*.pub
+
+# Dados (nunca commitar métricas reais, só o schema)
+data/
+*.csv
+
+# Sistema
+.DS_Store
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

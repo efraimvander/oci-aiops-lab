@@ -1,0 +1,28 @@
+#cloud-config
+# Sessão 1-2: instala Docker (para o Zabbix appliance), o Zabbix Agent2,
+# e o stress-ng (para gerares carga sintética na Sessão 2).
+
+package_update: true
+
+packages:
+  - docker
+  - stress-ng
+
+runcmd:
+  # Docker
+  - systemctl enable --now docker
+
+  # Zabbix appliance: imagem oficial "tudo-em-um" (server + frontend + base de dados)
+  # Frontend fica disponível em http://<ip-publico> (login inicial: Admin / zabbix)
+  - docker run -d --name zabbix-appliance --restart unless-stopped -p 80:8080 -p 10051:10051 zabbix/zabbix-appliance:latest
+  - sleep 30
+
+  # Zabbix Agent2 nativo, a reportar ao próprio host (server e agent na mesma instância,
+  # para simplificar o laboratório — ver ADR-002 em docs/decisions/)
+  - rpm -Uvh https://repo.zabbix.com/zabbix/6.4/oraclelinux8/x86_64/zabbix-release-6.4-1.el8.noarch.rpm || true
+  - dnf -y install zabbix-agent2 || true
+  - sed -i 's/^Server=.*/Server=127.0.0.1/' /etc/zabbix/zabbix_agent2.conf || true
+  - sed -i 's/^ServerActive=.*/ServerActive=127.0.0.1/' /etc/zabbix/zabbix_agent2.conf || true
+  - systemctl enable --now zabbix-agent2 || true
+
+final_message: "Instancia pronta. Zabbix em http://<ip-publico> (Admin/zabbix) apos ~1-2 min."
