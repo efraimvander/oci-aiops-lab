@@ -47,3 +47,38 @@ arquitectura (ver ADR-003) é manter as duas em paralelo neste laboratório,
 e mais tarde ligar os dados do Zabbix ao Object Storage/OCI Data Science
 (Sessão 3-4), aproveitando a granularidade mais rica que o Zabbix oferece
 para o treino do modelo de detecção de anomalias.
+
+
+
+## Métrica personalizada
+
+Publicada uma métrica custom via OCI CLI (namespace `aiops_lab_custom`,
+métrica `lab_heartbeat`), fora do conjunto de métricas automáticas que o
+`oci_computeagent` já recolhe por omissão. Serve de prova de conceito para
+publicar, mais tarde, o **score de anomalia** calculado pelo modelo de
+Machine Learning (Sessão 5) de volta para o OCI Monitoring.
+
+Troubleshooting desta parte (endpoint de ingestão, formato de timestamp,
+encoding do ficheiro JSON no Windows) documentado em detalhe à parte, no
+ADR-004.
+
+Comando final que funcionou:
+```powershell
+oci monitoring metric-data post --metric-data file://metric.json `
+  --endpoint https://telemetry-ingestion.sa-saopaulo-1.oraclecloud.com
+```
+
+## Alarm e Notifications
+
+Configurado um ciclo de alerta completo e testado de ponta a ponta:
+
+1. **Topic** de Notifications (`aiops-lab-alerts`) com subscrição por email
+2. **Alarm Definition** sobre a métrica `CpuUtilization` (namespace
+   `oci_computeagent`), accionado quando a média de 1 minuto ultrapassa 50%
+3. Testado com `stress-ng --cpu 2 --timeout 180s` — **email recebido com
+   sucesso**, confirmando o ciclo métrica → alarm → notification em
+   produção real, não só configurado
+
+Este é o mesmo padrão que será reutilizado na Sessão 5 para alertar quando
+o modelo de detecção de anomalias identificar um desvio: a infra-estrutura
+de alerta já está validada e pronta a reaproveitar.
