@@ -1,0 +1,1 @@
+[{"namespace":"aiops_lab_custom","compartmentId":"ocid1.compartment.oc1..aaaaaaaaz7yhc7kajgy3nkgkzffipxvcvps252abiw77tjwfdiphmzyowpya","name":"lab_heartbeat","dimensions":{"resourceId":"aiops-vm"},"datapoints":[{"timestamp":"2026-11-06T09:22:47Z","value":1}]}]
