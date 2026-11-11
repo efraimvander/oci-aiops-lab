@@ -102,3 +102,56 @@ OCI já permitir o tráfego — são duas camadas de firewall distintas.
 - Nenhum destes problemas tinha uma resposta directa e pronta online — a
   investigação caso a caso (logs, exec dentro do container, inspecção de
   rede) foi o que resolveu cada um, não uma única fonte.
+
+
+  ## Adenda (10/11/2026): recorrência do erro de limpeza de rede no restart do container
+
+### Contexto
+
+O container `zabbix-appliance` voltou a ficar num estado "Up" mas sem
+responder (`curl -I http://localhost` ficava pendurado, sem timeout nem
+erro) — o mesmo sintoma já registado anteriormente neste ADR. A correcção
+foi, de novo, um `sudo docker restart zabbix-appliance`.
+
+### O erro observado no restart
+
+```
+ERRO[0002] Unable to clean up network for container <id>: "tearing down
+network namespace configuration for container <id>: 1 error occurred:
+	* plugin type=\"bridge\" failed (delete): cni plugin bridge failed:
+running [/sbin/iptables -t nat -D POSTROUTING -s 10.88.0.4 -j CNI-xxxx
+...]: exit status 2: iptables v1.8.5 (nf_tables): Chain 'CNI-xxxx' does
+not exist
+```
+
+### Explicação
+
+O Podman (que substitui o Docker no Oracle Linux desta VM) usa o plugin de
+rede **CNI** para configurar a rede virtual de cada container — incluindo a
+bridge `cni-podman0` já vista nas métricas do Zabbix. Ao parar um
+container, o Podman tenta desfazer essa configuração, o que inclui remover
+uma regra específica do `iptables` associada a esse container.
+
+Neste caso, a regra (`CNI-xxxx`) **já não existia** no `iptables` — foi
+provavelmente removida antes, num ciclo anterior de paragem/arranque ou por
+o container ter ficado num estado inconsistente. O Podman tentou apagar
+algo que já não estava lá e reportou isso como erro.
+
+### Porque não é bloqueante
+
+O objectivo da limpeza ("remover a regra X") já estava cumprido por outra
+via. O `docker restart` termina com sucesso de qualquer forma, o container
+volta a arrancar, a rede é reconfigurada correctamente no arranque, e o
+serviço volta a responder normalmente a seguir — confirmado por
+`curl -I http://localhost` a devolver `200 OK` após o restart.
+
+### Lição actualizada
+
+Isto já aconteceu **duas vezes** de forma idêntica. Passa a ser tratado
+como um padrão conhecido deste ambiente (Podman + CNI em Oracle Linux),
+não um incidente isolado: um `docker restart` com este erro específico de
+limpeza de rede, seguido de o serviço voltar a responder, é seguro e não
+precisa de mais investigação. Se o container deixar de responder outra vez,
+o primeiro passo continua a ser o mesmo: `docker ps -a` (confirmar estado),
+`docker restart` (resolver), `curl` (confirmar).
+
