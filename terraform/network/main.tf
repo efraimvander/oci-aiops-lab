@@ -46,7 +46,7 @@ resource "oci_core_security_list" "public_sl" {
     protocol    = "all"
   }
 
-  # SSH
+  # SSH - restrito ao IP do administrador
   ingress_security_rules {
     protocol = "6" # TCP
     source   = var.ssh_allowed_cidr
@@ -56,7 +56,7 @@ resource "oci_core_security_list" "public_sl" {
     }
   }
 
-  # Interface web do Zabbix (zabbix-appliance expõe o frontend na porta 80)
+  # Interface web do Zabbix - restrito ao IP do administrador
   ingress_security_rules {
     protocol = "6"
     source   = var.ssh_allowed_cidr
@@ -66,7 +66,17 @@ resource "oci_core_security_list" "public_sl" {
     }
   }
 
-  # ICMP para diagnóstico (ping, path MTU)
+  # Grafana - restrito ao IP do administrador (regra trazida da Console para o codigo)
+  ingress_security_rules {
+    protocol = "6"
+    source   = var.ssh_allowed_cidr
+    tcp_options {
+      min = 3000
+      max = 3000
+    }
+  }
+
+  # ICMP para diagnostico (ping, path MTU)
   ingress_security_rules {
     protocol = "1" # ICMP
     source   = "0.0.0.0/0"
@@ -83,4 +93,3 @@ resource "oci_core_subnet" "public_subnet" {
   security_list_ids          = [oci_core_security_list.public_sl.id]
   prohibit_public_ip_on_vnic = false
 }
-
