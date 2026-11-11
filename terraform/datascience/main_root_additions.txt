@@ -1,0 +1,51 @@
+============================================================
+INSTRUCOES: adicionar isto ao teu terraform\main.tf existente
+============================================================
+
+Abre C:\ocilab\terraform\main.tf e adiciona este bloco NO FINAL
+do ficheiro (depois do module "storage" que ja la esta):
+
+module "datascience" {
+  source = "./datascience"
+
+  compartment_id = oci_identity_compartment.aiops_lab.id
+  subnet_id      = module.network.public_subnet_id
+}
+
+
+============================================================
+INSTRUCOES: adicionar isto ao teu terraform\outputs.tf existente
+============================================================
+
+Abre C:\ocilab\terraform\outputs.tf e adiciona no final:
+
+output "notebook_session_url" {
+  value       = module.datascience.notebook_session_url
+  description = "Abre este link para acederes ao Jupyter Notebook"
+}
+
+
+============================================================
+ONDE COLOCAR A PASTA NOVA
+============================================================
+
+Copia a pasta "datascience" (com main.tf, variables.tf, outputs.tf)
+para dentro de:
+
+C:\ocilab\terraform\datascience\
+
+Ficando assim:
+
+terraform\
+  main.tf          <- editado (adicionar module "datascience")
+  outputs.tf       <- editado (adicionar output notebook_session_url)
+  variables.tf
+  provider.tf
+  iam.tf
+  network\
+  compute\
+  storage\
+  datascience\      <- NOVA pasta
+    main.tf
+    variables.tf
+    outputs.tf

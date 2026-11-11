@@ -14,3 +14,9 @@ output "instance_public_ip" {
 output "bucket_name" {
   value = module.storage.bucket_name
 }
+
+
+output "notebook_session_url" {
+  value       = module.datascience.notebook_session_url
+  description = "Abre este link para acederes ao Jupyter Notebook"
+}

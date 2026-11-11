@@ -24,3 +24,9 @@ module "storage" {
 
   compartment_id = oci_identity_compartment.aiops_lab.id
 }
+
+module "datascience" {
+  source = "./datascience"
+
+  compartment_id = oci_identity_compartment.aiops_lab.id
+}
