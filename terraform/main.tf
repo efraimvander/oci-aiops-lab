@@ -7,7 +7,7 @@ module "network" {
   source = "./network"
 
   compartment_id   = oci_identity_compartment.aiops_lab.id
-  ssh_allowed_cidr = var.ssh_allowed_cidr
+  ssh_allowed_cidrs = var.ssh_allowed_cidrs
 }
 
 module "compute" {

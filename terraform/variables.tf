@@ -56,3 +56,8 @@ variable "instance_shape" {
   type        = string
   default     = "VM.Standard.E2.1.Micro"
 }
+
+variable "ssh_allowed_cidrs" {
+  description = "Lista de IPs/CIDRs autorizados a aceder por SSH e às interfaces web do Zabbix/Grafana (ex: casa, empresa)."
+  type        = list(string)
+}

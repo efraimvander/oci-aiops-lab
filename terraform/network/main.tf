@@ -36,6 +36,7 @@ resource "oci_core_route_table" "public_rt" {
   }
 }
 
+
 resource "oci_core_security_list" "public_sl" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.aiops_vcn.id
@@ -46,39 +47,48 @@ resource "oci_core_security_list" "public_sl" {
     protocol    = "all"
   }
 
-  # SSH - restrito ao IP do administrador
-  ingress_security_rules {
-    protocol = "6" # TCP
-    source   = var.ssh_allowed_cidr
-    tcp_options {
-      min = 22
-      max = 22
+  # SSH - restrito aos IPs autorizados (casa, empresa, etc.)
+  dynamic "ingress_security_rules" {
+    for_each = var.ssh_allowed_cidrs
+    content {
+      protocol = "6"
+      source   = ingress_security_rules.value
+      tcp_options {
+        min = 22
+        max = 22
+      }
+  }
+  }
+
+  # Interface web do Zabbix - restrito aos mesmos IPs
+  dynamic "ingress_security_rules" {
+    for_each = var.ssh_allowed_cidrs
+    content {
+      protocol = "6"
+      source   = ingress_security_rules.value
+      tcp_options { 
+        min = 80 
+        max = 80 
+        }
     }
   }
 
-  # Interface web do Zabbix - restrito ao IP do administrador
-  ingress_security_rules {
-    protocol = "6"
-    source   = var.ssh_allowed_cidr
-    tcp_options {
-      min = 80
-      max = 80
-    }
-  }
-
-  # Grafana - restrito ao IP do administrador (regra trazida da Console para o codigo)
-  ingress_security_rules {
-    protocol = "6"
-    source   = var.ssh_allowed_cidr
-    tcp_options {
-      min = 3000
-      max = 3000
+  # Grafana - restrito aos mesmos IPs
+  dynamic "ingress_security_rules" {
+    for_each = var.ssh_allowed_cidrs
+    content {
+      protocol = "6"
+      source   = ingress_security_rules.value
+      tcp_options { 
+        min = 3000
+        max = 3000 
+        }
     }
   }
 
   # ICMP para diagnostico (ping, path MTU)
   ingress_security_rules {
-    protocol = "1" # ICMP
+    protocol = "1"
     source   = "0.0.0.0/0"
   }
 }
