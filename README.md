@@ -1,78 +1,76 @@
-# OCI AIOps Lab
+# oci-aiops-lab
 
-![license](https://img.shields.io/badge/license-MIT-blue)
+**🇬🇧 English** · [🇵🇹 Versão em Português](README.pt.md)
 
-Pipeline de AIOps construído na OCI: infra-estrutura como código, observabilidade
-dupla (Zabbix + OCI Monitoring), detecção de anomalias com Machine Learning, e
-fecho do ciclo num dashboard Grafana. Projecto de portefólio de 9 sessões — ver
-`docs/decisions/` para o raciocínio por trás de cada escolha de arquitectura.
+> A hands-on AIOps lab on Oracle Cloud Infrastructure (OCI): infrastructure as code, real-time monitoring, a reproducible data pipeline, and an anomaly-detection model — with every incident documented, not just the happy path.
 
-## Pré-requisitos
+Built end-to-end with a limited OCI credit budget, as a portfolio project to go deep on cloud infrastructure, Terraform, observability, and applied machine learning.
 
-- Conta OCI com crédito activo
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
-- Uma API key OCI (My Profile -> API Keys na consola)
-- Um par de chaves SSH (`ssh-keygen -t rsa -b 4096`)
+![Architecture diagram](docs/architecture.png)
 
-## Quick start
+## What this is
 
-```bash
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
-# edita terraform.tfvars com os teus dados (tenancy_ocid, user_ocid,
-# fingerprint, private_key_path, ssh_public_key)
+Most "I learned cloud X" portfolio projects show a clean, finished result. This one keeps the scar tissue: **6 Architecture Decision Records (ADRs)** document real incidents hit along the way — a Terraform provider bug, a container that silently stopped responding, an IAM configuration that worked, then mysteriously stopped working, a machine-learning evaluation that looked "too perfect" to be honest — each with its root cause, not just the fix that happened to work.
 
-terraform init
-terraform plan      # revê sempre antes de aplicar
-terraform apply
-```
+## Stack
 
-No final, o Terraform mostra o IP público da instância. O Zabbix fica
-acessível em `http://<ip-publico>` (login inicial `Admin` / `zabbix` —
-**muda a password imediatamente**, isto é tratado como item de acção na
-Sessão 6 de segurança).
+| Layer | Tool |
+|---|---|
+| Infrastructure as Code | Terraform (`oracle/oci` provider) |
+| Identity & Access | OCI IAM — Compartments, Dynamic Groups, Policies, Resource Principal |
+| Networking | OCI VCN, public subnet, Security Lists |
+| Compute & Monitoring | OCI Compute (Oracle Linux) · Zabbix · OCI Monitoring (custom metrics, Alarms) |
+| Dashboards | Grafana (Zabbix data source) |
+| Data & ML | OCI Object Storage · OCI Data Science (Notebook Sessions) · scikit-learn (Isolation Forest) |
 
-Para desligar tudo e parar de consumir crédito:
-
-```bash
-terraform destroy
-```
-
-## Estrutura do repositório
+## Repository structure
 
 ```
 oci-aiops-lab/
-├── terraform/
-│   ├── main.tf, variables.tf, outputs.tf, iam.tf, provider.tf
-│   ├── network/     # VCN, sub-rede pública, security list
-│   ├── compute/     # Instância + cloud-init (Docker, Zabbix, stress-ng)
-│   └── storage/     # Bucket Object Storage (data lake)
-├── scripts/         # Scripts auxiliares (export de métricas, inferência)
-├── notebooks/        # Notebooks Jupyter do OCI Data Science
-├── models/          # Model cards dos modelos treinados
-├── grafana/         # Export dos dashboards
-└── docs/
-    └── decisions/   # Architecture Decision Records (ADRs)
+├── docs/
+│   ├── decisions/           # 6 ADRs — one per major incident or design decision
+│   └── observability.md     # Zabbix vs OCI Monitoring comparison
+├── scripts/
+│   └── export_zabbix_metrics.py
+└── terraform/
+    ├── network/              # VCN, subnet, Security List
+    ├── compute/              # Zabbix + Grafana host
+    ├── storage/              # Object Storage bucket
+    ├── datascience/          # Data Science Project + Notebook Session
+    └── iam.tf                # Dynamic Group + Policy for Resource Principal
 ```
 
-## Sessões do programa
+## Sessions & decisions
 
-0. Fundação & Governança — *este Terraform já cobre a maior parte*
-1. Infra-estrutura como Código — *idem*
-2. Observabilidade Dupla (Zabbix + OCI Monitoring)
-3. Dados: do Zabbix ao Data Lake
-4. Machine Learning: Detecção de Anomalias
-5. Fechar o Ciclo
-6. Hardening & Segurança
-7. Post-mortem & Decisões de Arquitectura
-8. Publicação
+| # | Topic | Key document |
+|---|---|---|
+| 0-1 | Foundation — Terraform, IAM, networking, compute | [ADR-001](docs/decisions/ADR-001-terraform.md) · [ADR-002](docs/decisions/ADR-002-network-topology.md) |
+| 2 | Monitoring — Zabbix install, custom metrics, Alarms | [ADR-003](docs/decisions/ADR-003-zabbix-troubleshooting.md) · [observability.md](docs/observability.md) |
+| 3-4 | Data pipeline + anomaly detection (Isolation Forest) | [ADR-004](docs/decisions/ADR-004-resource-principal-auth.md) · [ADR-005](docs/decisions/ADR-005-anomaly-detection-contamination.md) |
+| 5 | Grafana dashboard | — |
+| 6 | Security hardening | [ADR-006](docs/decisions/ADR-006-hardening-security.md) |
 
-## Custo real do projecto
+## Result: the anomaly-detection model
 
-Actualiza esta secção na Sessão 7 com o custo real consumido (ver
-`docs/postmortem.md`).
+Trained an Isolation Forest on real CPU-utilization data (collected via a synthetic `stress-ng` load test), evaluated **without** leaking the ground-truth label into the model's hyperparameters:
 
-## Decisões de arquitectura
+| Metric | Value |
+|---|---|
+| Precision | 0.60 |
+| Recall | 1.00 |
+| F1 | 0.75 |
 
-Ver `docs/decisions/` — cada ADR explica uma escolha e as alternativas
-consideradas.
+Why this isn't 1.00/1.00: see [ADR-005](docs/decisions/ADR-005-anomaly-detection-contamination.md) — a perfect score the first time around was the signal that the evaluation was flawed, not that the model was good.
+
+## Reproducing this
+
+1. Clone the repo and copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars`, filling in your own OCI tenancy OCID, user OCID, fingerprint, and key path.
+2. `cd terraform && terraform init && terraform plan`
+3. Review the plan, then `terraform apply`.
+
+Security note: the default Security List in this repo restricts SSH/Zabbix/Grafana to a single admin CIDR (see [ADR-006](docs/decisions/ADR-006-hardening-security.md)) — set `ssh_allowed_cidr` to your own IP before applying.
+
+## Author
+
+**Efraim Emanuel Vander** — System Administrator, Omnidata (Luanda, Angola)
+[LinkedIn](https://www.linkedin.com/) · built and documented session by session, errors included.
